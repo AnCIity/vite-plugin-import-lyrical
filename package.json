@@ -1,0 +1,34 @@
+{
+  "name": "vite-plugin-import-lyrical",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "author": "City",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AnCIity/vite-plugin-import-lyrical"
+  },
+  "bugs": {
+    "url": "https://github.com/AnCIity/vite-plugin-import-lyrical/issues"
+  },
+  "homepage": "https://github.com/AnCIity/vite-plugin-import-lyrical#readme",
+  "keywords": [
+    "vite"
+  ],
+  "files": [
+    "README.md",
+    "dist/"
+  ],
+  "devDependencies": {
+    "@types/node": "^16.11.10",
+    "typescript": "^4.4.4",
+    "vite": "^2.6.14"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.16.4"
+  }
+}
