@@ -1,85 +1,154 @@
-import { Plugin, normalizePath } from 'vite'
-import * as parser from '@babel/parser'
+import { Plugin, normalizePath, ResolvedConfig } from 'vite'
+import { parse, ParseResult } from '@babel/parser'
+import generate from '@babel/generator'
 import { resolve } from 'path'
-import fs from 'fs'
+import { existsSync } from 'fs'
+import { File } from '@babel/types'
+import { ILibDict, IPluginConfig } from './types'
 
-export function parseImportModule(code: string, libList: string[]) {
-  const ast = parser.parse(code, {
-    sourceType: 'module',
+/**
+ * 获取 babel 解析后的数据
+ */
+const getAst = (code: string) => parse(code, { sourceType: 'module', plugins: ['jsx'] })
 
-    plugins: [
-      // enable jsx and flow syntax
-      'jsx'
-    ]
-  })
+/**
+ * 解析数据中的引入库
+ */
+const parseModule = (ast: ParseResult<File>, libList: IPluginConfig['libList']) => {
+  const libDict: ILibDict = {}
 
-  const importLabMap: Record<string, string[]> = {}
+  if (!Array.isArray(ast.program.body)) return libDict
 
-  if (Array.isArray(ast.program.body)) {
-    ast.program.body.forEach((astNode: any) => {
-      const libName = (astNode as any)?.source?.value || ''
+  for (const astNode of ast.program.body) {
+    const libName = (astNode as any)?.source?.value || ''
 
-      if (astNode.type === 'ImportDeclaration' && libList.includes(libName)) {
-        astNode.specifiers.forEach((specifier: any) => {
-          const { name } = (specifier as any)?.imported
-          //   const localName = (specifier as any)?.local.name
-          if (!name) return
+    const libNames = libList.map(lib => lib.name)
+    if (astNode.type !== 'ImportDeclaration' || !libNames.includes(libName)) continue
 
-          if (importLabMap[libName]) importLabMap[libName].push(name)
-          else importLabMap[libName] = [name]
-        })
-      }
-    })
+    for (const specifier of (astNode as any).specifiers) {
+      const name = specifier?.imported.name || ''
+      const localName = specifier?.local.name || ''
+      if (!name) continue
+
+      const index = libList.findIndex(lib => lib.name === libName)
+
+      if (libDict[libName]) libDict[libName].push({ ...libList[index], name, localName })
+      else libDict[libName] = [{ ...libList[index], name, localName }]
+    }
   }
 
-  return importLabMap
+  return libDict
 }
 
-const codeIncludesLibraryName = (code: string, libList: string[]) =>
+/**
+ * 删除引入库
+ */
+const removeImportLib = (ast: ParseResult<File>, removeLibKeys: Array<string>) => {
+  const removeIndex: Array<number> = []
+
+  ast.program.body.forEach((astNode, index) => {
+    const libName = (astNode as any)?.source?.value || ''
+
+    if (!removeLibKeys.includes(libName)) return
+
+    removeIndex.push(index)
+  })
+
+  ast.program.body = ast.program.body.filter((_item, index) => !removeIndex.includes(index))
+
+  return generate(ast).code
+}
+
+/**
+ * 生成引入组件代码
+ */
+const generateImportComponentCode = (libDict: ILibDict) => {
+  let importComponentCode = ''
+
+  for (const libName of Object.keys(libDict)) {
+    const componentList = libDict[libName]
+
+    for (const { name, localName, directory = 'es' } of componentList) {
+      importComponentCode += `import ${localName} from '${libName}/${directory}/${name}';`
+    }
+  }
+
+  return importComponentCode
+}
+
+/**
+ * 生成引入组件样式代码
+ */
+const generateImportStyleCode = (libDict: ILibDict) => {
+  let importStyleCode = ''
+
+  for (const libName of Object.keys(libDict)) {
+    const componentList = libDict[libName]
+
+    for (const { name, style } of componentList) {
+      const path = style.transform(name, libName)
+      const importPath = `import '${path}';`
+
+      if (!style.useWhetherExists) {
+        importStyleCode += importPath
+        continue
+      }
+
+      const modulePath = normalizePath(require.resolve(libName))
+      const lastIndex = modulePath.lastIndexOf(libName)
+      const realPath = normalizePath(resolve(modulePath.substring(0, lastIndex), 'node_modules', path))
+      const has = existsSync(realPath)
+
+      importStyleCode += has ? importPath : ''
+    }
+  }
+
+  return importStyleCode
+}
+
+/**
+ * code 中是否有需要处理库
+ */
+const codeHasLib = (code: string, libList: Array<string>) =>
   !libList.every(libName => !new RegExp(`('${libName}')|("${libName}")`).test(code))
 
-const vitePluginImportLyrical = (): Plugin => {
-  // let viteConfig: ResolvedConfig
-  const name = 'vite-plugin-import-lyrical'
-  // if (!optionsCheck(config)) {
-  //   return { name }
-  // }
+/**
+ * vite 按需引入插件
+ */
+const vitePluginImportLyrical = (config: IPluginConfig): Plugin => {
+  let viteConfig: ResolvedConfig
 
-  const libList = ['@lyrical/react']
   return {
-    name,
-    configResolved() {
-      // store the resolved config
-      // viteConfig = resolvedConfig
+    name: 'vite-plugin-import-lyrical',
+    configResolved(resolvedConfig) {
+      viteConfig = resolvedConfig
     },
     transform(code, id) {
-      if (!/(node_modules)/.test(id) && codeIncludesLibraryName(code, libList)) {
-        const importLabMap = parseImportModule(code, libList)
-
-        let importStr = ''
-
-        for (const libName of libList) {
-          for (const name of importLabMap[libName]) {
-            const path = `${libName}/es/components/${name}/style/index.css`
-
-            const modulePath = normalizePath(require.resolve(libName))
-            const lastIndex = modulePath.lastIndexOf(libName)
-            const realPath = normalizePath(resolve(modulePath.substring(0, lastIndex), path))
-            const has = fs.existsSync(realPath)
-
-            if (has) importStr += `import '${path}';`
-          }
-        }
-
-        const sourcemap = this?.getCombinedSourcemap()
-        return {
-          code: importStr + code,
-          map: sourcemap
-        }
+      if (
+        /(node_modules)/.test(id) ||
+        !codeHasLib(
+          code,
+          config.libList.map(lib => lib.name)
+        )
+      ) {
+        return { code, map: null }
       }
+
+      const ast = getAst(code)
+
+      const libDice = parseModule(ast, config.libList)
+
+      if (viteConfig.command === 'build') {
+        code = generateImportComponentCode(libDice) + removeImportLib(ast, Object.keys(libDice))
+      }
+
+      code = generateImportStyleCode(libDice) + code
+
+      const sourcemap = this?.getCombinedSourcemap()
+
       return {
         code,
-        map: null
+        map: sourcemap
       }
     }
   }

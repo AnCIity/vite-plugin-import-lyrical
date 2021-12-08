@@ -1,13 +1,12 @@
 {
   "compilerOptions": {
     "baseUrl": "./",
-    "module": "ESNext",
-    "target": "ESNext",
-    "experimentalDecorators": true,
-    "lib": ["ESNext"],
+    "module": "CommonJS",
+    "target": "ES5",
+    "lib": ["ES5"],
     //"sourceMap": true,
     //"allowJs": true,
-    "moduleResolution": "node",
+    "moduleResolution": "Node",
     "forceConsistentCasingInFileNames": false,
     //"noImplicitReturns": true,
     //"noImplicitThis": true,
@@ -17,10 +16,11 @@
     //"noUnusedLocals": true,
     "allowSyntheticDefaultImports": true,
     //"skipLibCheck": true,
-    "esModuleInterop": true,
     "strict": true,
     //"noFallthroughCasesInSwitch": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
     //"isolatedModules": true,
+    "outDir": "dist",
+    "declaration": true
   }
 }
