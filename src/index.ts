@@ -96,7 +96,7 @@ const generateImportStyleCode = (libDict: ILibDict) => {
 
       const modulePath = normalizePath(require.resolve(libName))
       const lastIndex = modulePath.lastIndexOf(libName)
-      const realPath = normalizePath(resolve(modulePath.substring(0, lastIndex), 'node_modules', path))
+      const realPath = normalizePath(resolve(modulePath.substring(0, lastIndex), path))
       const has = existsSync(realPath)
 
       importStyleCode += has ? importPath : ''
