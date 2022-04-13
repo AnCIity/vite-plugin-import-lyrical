@@ -59,6 +59,8 @@ const removeImportLib = (ast: ParseResult<File>, removeLibKeys: Array<string>) =
   return generate(ast).code
 }
 
+const toDash = (str: string) => str.replace(/([A-Z])/g, '-$1').toLowerCase()
+
 /**
  * 生成引入组件代码
  */
@@ -68,8 +70,10 @@ const generateImportComponentCode = (libDict: ILibDict) => {
   for (const libName of Object.keys(libDict)) {
     const componentList = libDict[libName]
 
-    for (const { name, localName, directory = 'es' } of componentList) {
-      importComponentCode += `import ${localName} from '${libName}/${directory}/${name}';`
+    for (const { name, localName, directory = 'es', camel2DashComponentName = false } of componentList) {
+      importComponentCode += `import ${localName} from '${libName}/${directory}/${
+        camel2DashComponentName ? toDash(name) : name
+      }';`
     }
   }
 
@@ -85,8 +89,8 @@ const generateImportStyleCode = (libDict: ILibDict) => {
   for (const libName of Object.keys(libDict)) {
     const componentList = libDict[libName]
 
-    for (const { name, style } of componentList) {
-      const path = style.transform(name, libName)
+    for (const { name, style, camel2DashComponentName = false } of componentList) {
+      const path = style.transform(camel2DashComponentName ? toDash(name) : name, libName)
       const importPath = `import '${path}';`
 
       if (!style.useWhetherExists) {

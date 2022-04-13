@@ -12,6 +12,10 @@ interface LibConfig {
    */
   directory?: string
   /**
+   * 是否连接符
+   */
+  camel2DashComponentName?: boolean
+  /**
    * 样式配置
    */
   style: {
