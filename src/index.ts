@@ -59,7 +59,12 @@ const removeImportLib = (ast: ParseResult<File>, removeLibKeys: Array<string>) =
   return generate(ast).code
 }
 
-const toDash = (str: string) => str.replace(/([A-Z])/g, '-$1').toLowerCase()
+const toDash = (str: string) => {
+  const v = str.replace(/([A-Z])/g, '-$1').toLowerCase()
+
+  if (v[0] === '-') return str.substring(1)
+  return v
+}
 
 /**
  * 生成引入组件代码
