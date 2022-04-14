@@ -62,7 +62,7 @@ const removeImportLib = (ast: ParseResult<File>, removeLibKeys: Array<string>) =
 const toDash = (str: string) => {
   const v = str.replace(/([A-Z])/g, '-$1').toLowerCase()
 
-  if (v[0] === '-') return str.substring(1)
+  if (v[0] === '-') return v.substring(1)
   return v
 }
 
