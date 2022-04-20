@@ -121,6 +121,8 @@ const generateImportStyleCode = (libDict: ILibDict) => {
 const codeHasLib = (code: string, libList: Array<string>) =>
   !libList.every(libName => !new RegExp(`('${libName}')|("${libName}")`).test(code))
 
+let isSourcemap = false
+
 /**
  * vite 按需引入插件
  */
@@ -131,6 +133,7 @@ const vitePluginImportLyrical = (config: IPluginConfig): Plugin => {
     name: 'vite-plugin-import-lyrical',
     configResolved(resolvedConfig) {
       viteConfig = resolvedConfig
+      isSourcemap = !!viteConfig.build?.sourcemap
     },
     transform(code, id) {
       if (
@@ -157,7 +160,7 @@ const vitePluginImportLyrical = (config: IPluginConfig): Plugin => {
 
       return {
         code,
-        map: sourcemap
+        map: isSourcemap ? sourcemap : null
       }
     }
   }
