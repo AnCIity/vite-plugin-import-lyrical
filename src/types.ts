@@ -16,6 +16,11 @@ interface LibConfig {
    */
   camel2DashComponentName?: boolean
   /**
+   * 按需引入组件
+   * @default true
+   */
+  demandImportComponent?: boolean
+  /**
    * 样式配置
    */
   style: {
@@ -26,7 +31,7 @@ interface LibConfig {
     transform: (name: string, libName: string) => string
     /**
      * 判断样式文件是否存在
-     * @default false
+     * @default true
      */
     useWhetherExists?: boolean
   }

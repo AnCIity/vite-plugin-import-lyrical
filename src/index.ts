@@ -153,7 +153,19 @@ const vitePluginImportLyrical = (config: IPluginConfig): Plugin => {
       const libDice = parseModule(ast, config.libList)
 
       if (viteConfig.command === 'build') {
-        code = generateImportComponentCode(libDice) + removeImportLib(ast, Object.keys(libDice))
+        code =
+          generateImportComponentCode(
+            Object.keys(libDice).reduce((prev, key) => {
+              const current = libDice[key]
+
+              if (current[0].demandImportComponent) prev[key] = current
+              return prev
+            }, {} as ILibDict)
+          ) +
+          removeImportLib(
+            ast,
+            Object.keys(libDice).filter(key => libDice[key][0].demandImportComponent)
+          )
       }
 
       code = generateImportStyleCode(libDice) + code
