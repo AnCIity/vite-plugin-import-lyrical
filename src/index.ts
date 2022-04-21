@@ -98,6 +98,8 @@ const generateImportStyleCode = (libDict: ILibDict) => {
       const path = style.transform(camel2DashComponentName ? toDash(name) : name, libName)
       const importPath = `import '${path}';`
 
+      if (style.useWhetherExists === undefined) style.useWhetherExists = true
+
       if (!style.useWhetherExists) {
         importStyleCode += importPath
         continue
